@@ -305,7 +305,9 @@ input[type=range]{width:100%;accent-color:var(--accent);background:transparent;b
 <input type="file" id="txtInput" accept=".txt,.md,.text" style="display:none">
 
 <script>
-const WORKER_URL = 'https://glm-proxy.mvtwjhgvfh.workers.dev'; 
+// 🔥 抛弃 Cloudflare，直接使用国内直连的智谱官方 API
+const API_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+const API_KEY = '64a5bf427f6a4b95bfd5832a81568583.EwINgM1qRAgypC6B'; // 已填入你的 Key
 const MODEL_NAME = 'glm-4-flash'; 
 
 const KEY = 'rolecard_v3';
@@ -680,13 +682,17 @@ ${buildPrompt(current)}
   document.getElementById('sendBtn').disabled = true;
 
   try {
-    // 增加 30 秒超时控制，防止协议太长卡死
+    // 增加 30 秒超时控制
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-    const res = await fetch(WORKER_URL, {
+    // 🔥 直接请求国内智谱服务器，不用翻墙
+    const res = await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_KEY}`
+      },
       body: JSON.stringify({
         model: MODEL_NAME,
         messages: messages,
@@ -698,10 +704,9 @@ ${buildPrompt(current)}
     
     clearTimeout(timeoutId);
 
-    // 强制显示后台真实报错信息
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Worker返回 ${res.status} 错误: ${errText}`);
+      throw new Error(`智谱接口返回 ${res.status} 错误: ${errText}`);
     }
 
     const data = await res.json();
@@ -713,12 +718,11 @@ ${buildPrompt(current)}
   } catch (err) {
     let errMsg = '';
     if (err.name === 'AbortError') {
-      errMsg = '请求超时：高级协议太长导致模型卡住，或者网络不稳定。建议精简协议字数。';
+      errMsg = '请求超时：网络不稳定，或协议太长。';
     } else {
       errMsg = '请求失败：' + err.message;
     }
     appendErr(errMsg);
-    // 🔥 强制弹窗提示，防止静默失败
     alert(errMsg);
   } finally {
     hint.textContent = '';
