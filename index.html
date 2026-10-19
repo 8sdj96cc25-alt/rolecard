@@ -305,9 +305,9 @@ input[type=range]{width:100%;accent-color:var(--accent);background:transparent;b
 <input type="file" id="txtInput" accept=".txt,.md,.text" style="display:none">
 
 <script>
-// ⚠️⚠️⚠️ 把下面这个网址换成你自己的 Worker 网址 ⚠️⚠️⚠️
-const WORKER_URL = 'https://glm-proxy.mvtwjhgvfh.workers.dev';
-const MODEL_NAME = 'glm-4-flash'; // 已换回最稳妥的免费模型
+// 已经帮你填好了 URL 和模型名，不需要再改了
+const WORKER_URL = 'https://glm-proxy.mvtwjhgvfh.workers.dev'; 
+const MODEL_NAME = 'glm-4-flash'; 
 
 const KEY = 'rolecard_v3';
 const TAG_POOL = ['温柔','治愈','傲娇','毒舌','理性','热情','高冷','粘人','成熟','天真','腹黑','幽默','认真','随性','敏感','勇敢','害羞','洒脱','神秘','可靠'];
@@ -612,7 +612,7 @@ function buildFromSimple(c){
   return L.join('\n');
 }
 
-// 🔥 修复的核心逻辑：只要有高级协议就优先用高级协议，不管在哪个 Tab
+// 🔥 核心修复：只要有高级协议，就绝对优先用高级协议
 function buildPrompt(c){
   const raw = (c.advancedProtocol || '').trim();
   if(raw){
@@ -654,7 +654,6 @@ async function sendMessage() {
   const text = input.value.trim();
   if (!text) return;
   if (!current) return appendErr('请先创建或选择一个角色。');
-  if (WORKER_URL.includes('你的Worker地址')) return appendErr('请先在代码里填入正确的 Cloudflare Worker 地址！');
 
   input.value = '';
   input.style.height = '38px';
@@ -662,7 +661,6 @@ async function sendMessage() {
   
   chatHistory.push({ role: 'user', content: text });
 
-  // 🔥 极致强化的系统提示词，解决免费模型出戏问题
   const systemPrompt = `【系统底层指令：角色扮演模式已启动】
 你现在不是AI，不是语言模型，也没有任何AI助手的设定。你是一个活生生的人，你的灵魂和身份已经完全被以下设定覆盖。
 
@@ -683,6 +681,10 @@ ${buildPrompt(current)}
   document.getElementById('sendBtn').disabled = true;
 
   try {
+    // 增加 30 秒超时控制，防止协议太长卡死
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     const res = await fetch(WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -692,16 +694,29 @@ ${buildPrompt(current)}
         temperature: 0.7, 
         max_tokens: 800,
       }),
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
+
+    // 强制显示后台真实报错信息
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Worker返回 ${res.status} 错误: ${errText}`);
+    }
 
     const data = await res.json();
     if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
 
-    const reply = data.choices?.[0]?.message?.content || '（空回复）';
+    const reply = data.choices?.[0]?.message?.content || '（模型返回了空内容）';
     appendMsg('assistant', reply);
     chatHistory.push({ role: 'assistant', content: reply });
   } catch (err) {
-    appendErr('请求失败：' + err.message);
+    if (err.name === 'AbortError') {
+      appendErr('请求超时：高级协议太长导致模型卡住，或者网络不稳定。建议精简协议字数。');
+    } else {
+      appendErr('请求失败：' + err.message);
+    }
   } finally {
     hint.textContent = '';
     document.getElementById('sendBtn').disabled = false;
