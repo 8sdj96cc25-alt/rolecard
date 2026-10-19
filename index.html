@@ -236,7 +236,7 @@ input[type=range]{width:100%;accent-color:var(--accent);background:transparent;b
 
     <div id="advancedPanel" style="display:none">
       <div class="adv-hint">
-        <b>高级协议原文：</b>把完整的角色协议原样粘贴或写在这里，支持任意格式。这段内容会被原样作为最终协议使用，侧栏名字会自动从 name: 中抽取。
+        <b>高级协议原文：</b>把完整的角色协议原样粘贴或写在这里，支持任意格式。只要这里有内容，对话时就会优先使用这里的设定。
       </div>
       <textarea id="advancedEditor" spellcheck="false" placeholder="把完整的角色协议原文粘贴到这里..."></textarea>
     </div>
@@ -612,10 +612,11 @@ function buildFromSimple(c){
   return L.join('\n');
 }
 
+// 🔥 修复的核心逻辑：只要有高级协议就优先用高级协议，不管在哪个 Tab
 function buildPrompt(c){
-  if(c.mode === 'advanced'){
-    const raw = (c.advancedProtocol || '').trim();
-    return raw ? c.advancedProtocol : '（还没有写入高级协议原文，请在编辑区粘贴或撰写）';
+  const raw = (c.advancedProtocol || '').trim();
+  if(raw){
+    return raw;
   }
   return buildFromSimple(c);
 }
@@ -627,7 +628,7 @@ function renderPreview(){
   document.getElementById('charCount').textContent = text.length + ' 字';
 }
 
-/* ---------- 聊天逻辑（重点强化） ---------- */
+/* ---------- 聊天逻辑 ---------- */
 function appendMsg(role, content) {
   const box = document.getElementById('chatMessages');
   const empty = box.querySelector('.chat-empty');
