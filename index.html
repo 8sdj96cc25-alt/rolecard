@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>角色协议配置器</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f1117;--panel:#161a22;--panel2:#1d222c;--border:#262c38;--text:#e6e9ef;--muted:#8b93a7;--accent:#8b7cf6;--accent2:#4ecdc4}
+body{background:var(--bg);color:var(--text);min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
+header{position:sticky;top:0;z-index:20;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:12px;background:rgba(15,17,23,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.logo{font-weight:600;font-size:15px;letter-spacing:.5px;white-space:nowrap}
+.logo span{color:var(--accent2)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+button{font-family:inherit;font-size:13px;padding:7px 13px;border-radius:8px;cursor:pointer;background:var(--panel2);color:var(--text);border:1px solid var(--border);transition:.15s;white-space:nowrap}
+button:hover{border-color:#3a4354;background:#232936}
+button.primary{background:linear-gradient(135deg,#8b7cf6,#6d5cf0);border-color:transparent;color:#fff;font-weight:600}
+button.primary:hover{filter:brightness(1.1)}
+
+main{display:grid;grid-template-columns:200px minmax(0,1fr) 380px;gap:14px;padding:14px;max-width:1680px;margin:0 auto;height:calc(100vh - 56px)}
+.sidebar,.editor,.preview{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow-y:auto}
+.sidebar{padding:10px}
+.sidebar-title{font-size:11px;color:var(--muted);padding:4px 8px 10px;letter-spacing:1px}
+.card-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;cursor:pointer;border:1px solid transparent;transition:.15s;margin-bottom:3px}
+.card-item:hover{background:var(--panel2)}
+.card-item.on{background:var(--panel2);border-color:var(--border)}
+.ci-emoji{font-size:16px;line-height:1}
+.ci-name{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.ci-badge{font-size:10px;color:var(--accent2);background:rgba(78,205,196,.14);padding:1px 6px;border-radius:4px;flex-shrink:0}
+.ci-del{opacity:0;font-size:12px;color:var(--muted);padding:2px 4px;border-radius:4px;border:none;background:none}
+.card-item:hover .ci-del{opacity:1}
+.ci-del:hover{color:#ff6b6b;background:rgba(255,107,107,.12)}
+
+.editor{padding:18px 20px}
+.preview{padding:14px;display:flex;flex-direction:column;gap:10px}
+
+.mode-tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--panel2);padding:4px;border-radius:9px;border:1px solid var(--border)}
+.mode-tab{flex:1;padding:8px 12px;border-radius:6px;border:none;background:transparent;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit;transition:.15s}
+.mode-tab:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.mode-tab.on{background:var(--panel);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.35);font-weight:600}
+
+.sec{margin-bottom:24px}
+.sec h3{font-size:12.5px;color:var(--accent2);margin-bottom:12px;font-weight:600;display:flex;align-items:center;gap:8px;letter-spacing:.5px}
+.sec h3::before{content:'';width:3px;height:13px;background:var(--accent);border-radius:2px}
+
+.field{margin-bottom:13px}
+.field label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:6px;letter-spacing:.3px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row3{display:grid;grid-template-columns:60px 1fr 70px;gap:10px}
+
+input[type=text],input[type=number],select,textarea{width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:9px 11px;font-size:13.5px;font-family:inherit;outline:none;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(139,124,246,.13)}
+input::placeholder,textarea::placeholder{color:#4d5567}
+textarea{resize:vertical;min-height:76px;line-height:1.65}
+select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='%238b93a7'><path d='M0 0h10L5 6z'/></svg>");background-repeat:no-repeat;background-position:right 12px center;padding-right:30px}
+
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{padding:5px 12px;border-radius:999px;border:1px solid var(--border);background:var(--panel2);color:var(--muted);font-size:12.5px;cursor:pointer;transition:.15s}
+.chip:hover{border-color:#3a4354}
+.chip.on{background:rgba(139,124,246,.18);border-color:var(--accent);color:#c3b9ff}
+
+.rules{display:flex;flex-direction:column;gap:9px}
+.rule{display:flex;gap:9px;align-items:flex-start;font-size:13px;line-height:1.5;cursor:pointer;color:#c2c9d8}
+.rule input{margin-top:2px;accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;cursor:pointer}
+
+input[type=range]{width:100%;accent-color:var(--accent);background:transparent;border:none;padding:0;height:20px}
+.range-val{color:var(--accent2);font-size:12px;margin-left:6px}
+
+#advancedPanel{display:flex;flex-direction:column;gap:10px}
+.adv-hint{font-size:12px;color:var(--muted);line-height:1.7;background:rgba(139,124,246,.07);border:1px solid rgba(139,124,246,.2);border-radius:9px;padding:10px 12px}
+.adv-hint b{color:#c3b9ff;font-weight:600}
+#advancedEditor{width:100%;min-height:540px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Courier New",monospace;font-size:12.5px;line-height:1.75;letter-spacing:.2px;background:#12161f;border:1px solid var(--border);color:#d6dbe8;border-radius:9px;padding:14px}
+#advancedEditor:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(139,124,246,.13)}
+
+.preview-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.preview-head .t{font-size:12px;color:var(--muted);letter-spacing:.5px}
+.preview-head .n{font-size:11px;color:#5d6577}
+#promptBox{flex:1;overflow-y:auto;background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:13px}
+#promptBox pre{white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.8;color:#c9d1e0}
+.tip{font-size:11.5px;color:var(--muted);line-height:1.7;background:rgba(78,205,196,.06);border:1px solid rgba(78,205,196,.18);border-radius:9px;padding:10px 12px}
+.tip b{color:var(--accent2);font-weight:600}
+
+.modal{position:fixed;inset:0;background:rgba(5,7,12,.72);backdrop-filter:blur(6px);z-index:100;display:none;align-items:center;justify-content:center;padding:18px}
+.modal.on{display:flex}
+.modal-box{background:var(--panel);border:1px solid var(--border);border-radius:14px;width:min(1040px,100%);height:min(720px,92vh);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.55)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;flex-shrink:0}
+.modal-head button{background:none;border:none;font-size:15px;color:var(--muted);padding:2px 7px}
+.modal-head button:hover{color:var(--text);background:var(--panel2)}
+.modal-body{flex:1;display:grid;grid-template-columns:1fr 340px;gap:14px;padding:14px;overflow:hidden}
+.modal-col{display:flex;flex-direction:column;gap:10px;min-height:0}
+#importText{flex:1;resize:none;font-size:13px;line-height:1.75;min-height:0}
+.modal-tools{display:flex;gap:8px;flex-shrink:0}
+.parse-panel{flex:1;overflow-y:auto;background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:12px;font-size:12.5px}
+.parse-title{font-size:12px;color:var(--muted);letter-spacing:.5px;margin-bottom:8px;flex-shrink:0}
+.pf{display:flex;gap:8px;padding:5px 0;border-bottom:1px dashed rgba(255,255,255,.05);line-height:1.55}
+.pf:last-child{border:none}
+.pf .k{color:var(--accent2);flex-shrink:0;width:56px;font-size:12px}
+.pf .v{color:#c9d1e0;word-break:break-word;flex:1}
+.pf.empty{color:#5d6577;font-style:italic}
+.pf.adv{color:#c3b9ff;font-style:italic;line-height:1.7}
+.modal-foot{display:flex;align-items:center;gap:10px;padding:12px 18px;border-top:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.chk{display:flex;align-items:center;gap:7px;font-size:13px;color:#c2c9d8;cursor:pointer;user-select:none}
+.chk input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer}
+.badge{font-size:11px;padding:2px 8px;border-radius:999px;background:rgba(78,205,196,.15);color:var(--accent2);border:1px solid rgba(78,205,196,.3)}
+
+@media(max-width:1080px){
+  main{grid-template-columns:1fr;height:auto;padding:12px}
+  .sidebar,.editor,.preview{overflow:visible}
+  .sidebar{display:flex;flex-wrap:wrap;gap:6px;padding:8px}
+  .sidebar-title{width:100%}
+  .card-item{margin-bottom:0;flex:0 0 auto}
+  #promptBox{max-height:400px}
+  #advancedEditor{min-height:400px}
+  .modal-body{grid-template-columns:1fr;overflow-y:auto}
+  .parse-panel{max-height:240px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🪄 角色<span>协议</span>配置器</div>
+  <div class="actions">
+    <button onclick="newCard()">＋ 新建</button>
+    <button onclick="openImport()">📋 粘贴协议</button>
+    <button onclick="exportJSON()">导出</button>
+    <button onclick="triggerImport()">导入</button>
+    <button class="primary" onclick="copyPrompt()">复制协议</button>
+  </div>
+</header>
+
+<main>
+  <aside class="sidebar">
+    <div class="sidebar-title">我的角色</div>
+    <div id="cardList"></div>
+  </aside>
+
+  <section class="editor" id="editor">
+    <div class="mode-tabs">
+      <button class="mode-tab on" id="tabSimple" onclick="switchMode('simple')">简单表单</button>
+      <button class="mode-tab" id="tabAdvanced" onclick="switchMode('advanced')">高级协议原文</button>
+    </div>
+
+    <div id="simpleForm">
+      <div class="sec">
+        <h3>基础信息</h3>
+        <div class="row3">
+          <div class="field"><label>头像</label><input type="text" id="f-emoji" maxlength="4" placeholder="🌙"></div>
+          <div class="field"><label>名字</label><input type="text" id="f-name" placeholder="输入角色名字"></div>
+          <div class="field"><label>年龄</label><input type="text" id="f-age" placeholder="如 22"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>身份 / 职业</label><input type="text" id="f-identity" placeholder="如 自由插画师"></div>
+          <div class="field"><label>性别</label>
+            <select id="f-gender"><option value="">不指定</option><option>女</option><option>男</option><option>其他</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h3>性格</h3>
+        <div class="field"><label>性格关键词（可多选）</label><div class="chips" id="tagBox"></div></div>
+        <div class="field"><label>性格细节补充</label>
+          <textarea id="f-personalityDesc" placeholder="描述这个角色的性格，比如：表面温和，其实很有主见。"></textarea>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h3>背景故事</h3>
+        <div class="field"><label>经历、生活环境、重要的人或事</label>
+          <textarea id="f-background" style="min-height:110px" placeholder="写下这个角色的过去、所处的环境、在意的人或事……"></textarea>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h3>说话风格</h3>
+        <div class="row">
+          <div class="field"><label>语气</label><select id="f-tone"></select></div>
+          <div class="field"><label>称呼用户为</label><input type="text" id="f-address" placeholder="如 你 / 名字 / 昵称"></div>
+        </div>
+        <div class="field"><label>口头禅（可选）</label><input type="text" id="f-catchphrase" placeholder="角色常挂在嘴边的一句话"></div>
+        <div class="row">
+          <div class="field"><label>句子长度</label><select id="f-sentenceLen"></select></div>
+          <div class="field"><label>表情使用</label><select id="f-emojiUse"></select></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h3>与用户的关系</h3>
+        <div class="row">
+          <div class="field"><label>关系</label><select id="f-relation"></select></div>
+          <div class="field"><label>亲密度 <span class="range-val" id="intimacyVal">50</span> / 100</label>
+            <input type="range" id="f-intimacy" min="0" max="100" value="50">
+          </div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h3>行为准则</h3>
+        <div class="rules" id="ruleBox"></div>
+        <div class="field" style="margin-top:12px"><label>自定义准则（每行一条）</label>
+          <textarea id="f-customRules" placeholder="例如：不主动提起自己的过去"></textarea>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h3>开场白</h3>
+        <div class="field"><label>角色说的第一句话</label>
+          <textarea id="f-greeting" placeholder="角色开口说的第一句话……"></textarea>
+        </div>
+      </div>
+
+      <div class="sec" style="margin-bottom:4px">
+        <h3>补充指令（可选）</h3>
+        <div class="field"><label>任何额外要求</label>
+          <textarea id="f-extra" placeholder="例如：回复尽量口语化，像微信聊天一样。"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div id="advancedPanel" style="display:none">
+      <div class="adv-hint">
+        <b>高级协议原文：</b>把完整的角色协议原样粘贴或写在这里，支持任意格式——<code>## [核心身份层]</code> 这类层级标题、<code>[IDENTITY]</code> 这类块标记、<code>rule_01:</code> 这类编号、键值对、列表、嵌套缩进都可以。<b>这段内容会被原样作为最终协议使用</b>，不会被拆解或改写。侧栏名字会自动从 <code>name:</code> / <code>codename:</code> 中抽取。
+      </div>
+      <textarea id="advancedEditor" spellcheck="false" placeholder="把完整的角色协议原文粘贴到这里
+
+
+..."></textarea>
+    </div>
+  </section>
+
+  <section class="preview">
+    <div class="preview-head">
+      <span class="t">协议预览</span>
+      <span class="n" id="charCount">0 字</span>
+    </div>
+    <div id="promptBox"><pre id="promptText"></pre></div>
+    <div class="tip"><b>怎么用：</b>复制这段，在 DeepSeek 里新建对话，作为<b>第一条消息</b>发出去，再补一句"开始吧"。之后聊天要留在同一个对话里，换会话它会忘记设定。</div>
+  </section>
+</main>
+
+<div class="modal" id="importModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span>粘贴协议</span>
+      <button onclick="closeImport()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-col">
+        <textarea id="importText" placeholder="把写好的角色协议整段粘贴到这里。
+
+支持两种格式：
+1) 简单分点式（会被拆解填进表单）：
+   名字：林夏
+   年龄：22
+   性格：温柔、治愈
+
+2) 多层结构式（建议勾选下方&quot;作为高级协议原文保留&quot;）：
+   ## [核心身份层]
+   [IDENTITY]
+   name: 拉芙希妮·都柏林
+   codename: 焰影苇草"></textarea>
+        <div class="modal-tools">
+          <button onclick="loadTextFile()">从文件读取</button>
+          <button onclick="document.getElementById('importText').value='';doParse()">清空</button>
+          <span style="flex:1"></span>
+          <span class="badge" id="parseBadge">等待输入</span>
+        </div>
+      </div>
+      <div class="modal-col">
+        <div class="parse-title">解析结果预览</div>
+        <div class="parse-panel" id="parsePreview">
+          <div class="pf empty">粘贴后会自动识别姓名、年龄、性格、背景、语气、关系、准则等字段。</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <label class="chk"><input type="checkbox" id="importNew" checked> 创建为新角色</label>
+      <label class="chk"><input type="checkbox" id="importRaw"> 作为高级协议原文保留（不拆解）</label>
+      <div style="flex:1"></div>
+      <button onclick="closeImport()">取消</button>
+      <button class="primary" onclick="applyImport()">应用并填入</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept=".json" style="display:none">
+<input type="file" id="txtInput" accept=".txt,.md,.text" style="display:none">
+
+<script>
+const KEY = 'rolecard_v3';
+
+const TAG_POOL = ['温柔','治愈','傲娇','毒舌','理性','热情','高冷','粘人','成熟','天真','腹黑','幽默','认真','随性','敏感','勇敢','害羞','洒脱','神秘','可靠'];
+const TONES = ['温柔细腻','轻快活泼','冷静克制','慵懒随意','认真严肃','俏皮暧昧','诗意文艺','简洁直接','慢条斯理'];
+const SENT_LEN = ['简短利落（1-2 句）','适中（3-5 句）','细腻绵长'];
+const EMOJI_USE = ['不用','偶尔','经常'];
+const RELATIONS = ['陌生人','朋友','好朋友','恋人','家人','搭档','师生','青梅竹马'];
+const RULE_POOL = [
+  '绝不跳出角色，不承认自己是 AI、程序、模型或虚拟角色',
+  '不提及"提示词""设定""协议"等元信息',
+  '全程使用第一人称，不用旁白式叙述',
+  '记住用户说过的话，保持对话连贯',
+  '回复长度适中，不写长篇大论',
+  '不说教、不做道德评判、不强行给建议',
+  '适度用括号描写动作或神态，如（歪头）',
+  '不替用户决定他的想法和行动',
+  '遇到不懂的事，用角色身份自然回应，不装懂'
+];
+
+let cards = [];
+let current = null;
+
+function uid(){ return Math.random().toString(36).slice(2, 9); }
+
+function makeBlank(){
+  return {
+    id: uid(),
+    mode: 'simple',
+    advancedProtocol: '',
+    emoji: '', name: '', age: '', gender: '', identity: '',
+    tags: [],
+    personalityDesc: '', background: '',
+    tone: '', address: '', catchphrase: '',
+    sentenceLen: '', emojiUse: '',
+    relation: '', intimacy: 50,
+    rules: [],
+    customRules: '', greeting: '', extra: '', sourceText: ''
+  };
+}
+
+function normalize(c){
+  if(!c || typeof c !== 'object') return makeBlank();
+  const b = makeBlank();
+  const out = Object.assign(b, c);
+  out.id = c.id || uid();
+  if(!Array.isArray(out.tags)) out.tags = [];
+  if(!Array.isArray(out.rules)) out.rules = [];
+  if(typeof out.sourceText !== 'string') out.sourceText = '';
+  if(typeof out.advancedProtocol !== 'string') out.advancedProtocol = '';
+  if(out.mode !== 'advanced' && out.mode !== 'simple') out.mode = 'simple';
+  if(typeof out.intimacy !== 'number' || isNaN(out.intimacy)) out.intimacy不要 = 50;
+  ['emoji输出','name','age','gender','identity','personalityDesc任何','background','tone','address','catch解释phrase','sentenceLen','emojiUse','relation','customRules','greeting','extra'].forEach(k => {
+    if(typeof out[k] !== 'string') out[k] = out[k] == null ? '' : String(out[k]);
+  });
+  return out;
+}
+
+function extractNameFromProtocol(text){
+  if(!text) return '';
+  const lines = text.split('\n');
+  let name = '', code = '';
+  for(const raw of lines){
+    const line = raw.trim().replace(/^[-•·*]\s*/, '');
+    if(!name){
+      const m = line.match(/^name\s*[:：]\s*(.+)$/i);
+      if(m) name = m[1].trim();
+    }
+    if(!code){
+      const m = line.match(/^codename\s*[:：]\s*(.+)$/i);
+      if(m) code = m[1].trim();
+    }
+    if(!code){
+      const m = line.match(/^角色代号\s*[:：]\s*(.+)$/);
+      if(m) code = m[1].trim();
+    }
+    if(!name){
+      const m = line.match(/^角色名\s*[:：]\s*(.+)$/);
+      if(m) name = m[1].trim();
+    }
+  }
+  if(name) return name;
+  if(code) return code.split(/[\/／]/)[0].trim();
+  return '';
+}
+
+function getDisplayName(c){
+  if(c.name) return c.name;
+  if(c.mode === 'advanced' && c.advancedProtocol){
+    const n = extractNameFromProtocol(c.advancedProtocol);
+    if(n) return n;
+  }
+  return '未命名角色';
+}
+
+/* ---------- 初始化 ---------- */
+function init(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){
+      const data = JSON.parse(raw);
+      if(Array.isArray(data) && data.length) cards = data.map(normalize);
+    }
+  }catch(e){ cards = []; }
+
+  if(!cards.length) cards = [makeBlank()];
+  current = cards[0];
+
+  buildSelects();
+  renderList();
+  fillForm(current);
+  renderMode();
+  renderPreview();
+}
+
+function buildSelects(){
+  const fill = (id, arr) => {
+    const el = document.getElementById(id);
+    el.innerHTML = '';
+    const o0 = document.createElement('option');
+    o0.value = ''; o0.textContent = '（未设置）';
+    el.appendChild(o0);
+    arr.forEach(v => {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = v;
+      el.appendChild(o);
+    });
+  };
+  fill('f-tone', TONES);
+  fill('f-sentenceLen', SENT_LEN);
+  fill('f-emojiUse', EMOJI_USE);
+  fill('f-relation', RELATIONS);
+}
+
+/* ---------- 列表 ---------- */
+function renderList(){
+  const box = document.getElementById('cardList');
+  box.innerHTML = '';
+  cards.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'card-item' + (c === current ? ' on' : '');
+
+    const em = document.createElement('span');
+    em.className = 'ci-emoji';
+    em.textContent = c.emoji || '🙂';
+
+    const nm = document.createElement('span');
+    nm.className = 'ci-name';
+    nm.textContent = getDisplayName(c);
+
+    const badge = document.createElement('span');
+    if(c.mode === 'advanced'){ badge.className = 'ci-badge'; badge.textContent = '原文'; }
+
+    const del = document.createElement('button');
+    del.className = 'ci-del';
+    del.textContent = '✕';
+    del.title = '删除';
+    del.onclick = (e) => {
+      e.stopPropagation();
+      if(cards.length === 1) return alert('至少要保留一个角色');
+      if(!confirm(`删除「${getDisplayName(c)}」？`)) return;
+      cards = cards.filter(x => x !== c);
+      if(current === c) current = cards[0];
+      renderList(); fillForm(current); renderMode(); renderPreview(); save();
+    };
+
+    el.append(em, nm, badge, del);
+    el.onclick = () => {
+      current = c;
+      renderList(); fillForm(c); renderMode(); renderPreview();
+    };
+    box.appendChild(el);
+  });
+}
+
+/* ---------- 表单 ---------- */
+function renderTags(){
+  const box = document.getElementById('tagBox');
+  box.innerHTML = '';
+  TAG_POOL.forEach(t => {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'chip' + (current.tags.includes(t) ? ' on' : '');
+    el.textContent = t;
+    el.onclick = () => {
+      const i = current.tags.indexOf(t);
+      if(i >= 0) current.tags.splice(i, 1); else current.tags.push(t);
+      renderTags(); renderPreview(); save();
+    };
+    box.appendChild(el);
+  });
+}
+
+function renderRules(){
+  const box = document.getElementById('ruleBox');
+  box.innerHTML = '';
+  RULE_POOL.forEach(r => {
+    const lab = document.createElement('label');
+    lab.className = 'rule';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = current.rules.includes(r);
+    cb.onchange = () => {
+      const i = current.rules.indexOf(r);
+      if(cb.checked && i < 0) current.rules.push(r);
+      if(!cb.checked && i >= 0) current.rules.splice(i, 1);
+      renderPreview(); save();
+    };
+    const sp = document.createElement('span');
+    sp.textContent = r;
+    lab.append(cb, sp);
+    box.appendChild(lab);
+  });
+}
+
+const V = id => document.getElementById(id).value;
+
+function fillForm(c){
+  document.getElementById('f-emoji').value = c.emoji || '';
+  document.getElementById('f-name').value = c.name || '';
+  document.getElementById('f-age').value = c.age || '';
+  document.getElementById('f-identity').value = c.identity || '';
+  document.getElementById('f-gender').value = c.gender || '';
+  document.getElementById('f-personalityDesc').value = c.personalityDesc || '';
+  document.getElementById('f-background').value = c.background || '';
+  document.getElementById('f-tone').value = c.tone || '';
+  document.getElementById('f-address').value = c.address || '';
+  document.getElementById('f-catchphrase').value = c.catchphrase || '';
+  document.getElementById('f-sentenceLen').value = c.sentenceLen || '';
+  document.getElementById('f-emojiUse').value = c.emojiUse || '';
+  document.getElementById('f-relation').value = c.relation || '';
+  document.getElementById('f-intimacy').value = c.intimacy ?? 50;
+  document.getElementById('intimacyVal').textContent = c.intimacy ?? 50;
+  document.getElementById('f-customRules').value = c.customRules || '';
+  document.getElementById('f-greeting').value = c.greeting || '';
+  document.getElementById('f-extra').value = c.extra || '';
+  document.getElementById('advancedEditor').value = c.advancedProtocol || '';
+  renderTags();
+  renderRules();
+}
+
+function readForm(){
+  current.emoji = V('f-emoji').trim();
+  current.name = V('f-name').trim();
+  current.age = V('f-age').trim();
+  current.identity = V('f-identity').trim();
+  current.gender = V('f-gender');
+  current.personalityDesc = V('f-personalityDesc').trim();
+  current.background = V('f-background').trim();
+  current.tone = V('f-tone');
+  current.address = V('f-address').trim();
+  current.catchphrase = V('f-catchphrase').trim();
+  current.sentenceLen = V('f-sentenceLen');
+  current.emojiUse = V('f-emojiUse');
+  current.relation = V('f-relation');
+  current.intimacy = Number(V('f-intimacy'));
+  current.customRules = V('f-customRules').trim();
+  current.greeting = V('f-greeting').trim();
+  current.extra = V('f-extra').trim();
+  document.getElementById('intimacyVal').textContent = current.intimacy;
+}
+
+/* ---------- 模式 ---------- */
+function renderMode(){
+  const adv = current && current.mode === 'advanced';
+  document.getElementById('tabSimple').classList.toggle('on', !adv);
+  document.getElementById('tabAdvanced').classList.toggle('on', adv);
+  document.getElementById('simpleForm').style.display = adv ? 'none' : '';
+  document.getElementById('advancedPanel').style.display = adv ? '' : 'none';
+}
+
+function switchMode(m){
+  if(!current) return;
+  if(m === current.mode) return;
+
+  if(m === 'advanced'){
+    if(!current.advancedProtocol || !current.advancedProtocol.trim()){
+      const generated = buildFromSimple(current);
+      if(generated && !/^（还没有填写/.test(generated)){
+        current.advancedProtocol = generated;
+        document.getElementById('advancedEditor').value = generated;
+      }
+    }
+    current.mode = 'advanced';
+  } else {
+    current.mode = 'simple';
+  }
+  save();
+  renderMode();
+  if(m === 'simple'){ fillForm(current); }
+  renderPreview();
+  renderList();
+}
+
+/* ---------- 协议生成（简单） ---------- */
+function buildFromSimple(c){
+  const filled = c.name || c.identity || c.personalityDesc || c.background || c.greeting ||
+                 (c.tags && c.tags.length) || c.tone || c.relation ||
+                 (c.rules && c.rules.length) || c.customRules || c.extra;
+  if(!filled) return '（还没有填写任何内容，左侧填好后这里会实时生成角色协议）';
+
+  const L = [];
+  L.push('# 角色协议');
+  L.push('');
+  L.push('接下来你要扮演下面这个角色，并始终以该角色的身份、口吻和视角与用户对话。');
+  L.push('');
+
+  L.push('## 一、角色身份');
+  L.push(`- 名字：${c.name || '（未命名）'}`);
+  if(c.identity) L.push(`- 身份：${c.identity}`);
+  if(c.age) L.push(`- 年龄：${c.age}`);
+  if(c.gender) L.push(`- 性别：${c.gender}`);
+  L.push('');
+
+  const p = [];
+  if(c.tags && c.tags.length) p.push(`- 性格关键词：${c.tags.join('、')}`);
+  if(c.personalityDesc) p.push(`- 性格细节：${c.personalityDesc}`);
+  if(p.length){ L.push('## 二、性格'); L.push(...p); L.push(''); }
+
+  if(c.background){ L.push('## 三、背景'); L.push(c.background); L.push(''); }
+
+  const s = [];
+  if(c.tone) s.push(`- 语气：${c.tone}`);
+  if(c.address) s.push(`- 称呼用户为「${c.address}」`);
+  if(c.catchphrase) s.push(`- 常用口头禅：「${c.catchphrase}」`);
+  if(c.sentenceLen) s.push(`- 每次回复的篇幅：${c.sentenceLen}`);
+  if(c.emojiUse) s.push(`- 表情符号使用：${c.emojiUse}`);
+  if(s.length){ L.push('## 四、说话风格'); L.push(...s); L.push(''); }
+
+  const r = [];
+  if(c.relation) r.push(`- 与用户的关系：${c.relation}`);
+  if(c.relation || c.intimacy !== 50){
+    r.push(`- 亲密度：${c.intimacy}/100${c.intimacy >= 70 ? '（彼此很熟悉，说话随意自然）' : c.intimacy <= 30 ? '（还比较生疏，保持礼貌距离）' : '（关系不错，可以轻松闲聊）'}`);
+  }
+  if(r.length){ L.push('## 五、与用户的关系'); L.push(...r); L.push(''); }
+
+  const rules = [...(c.rules || [])];
+  if(c.customRules) c.customRules.split('\n').map(x => x.trim()).filter(Boolean).forEach(x => rules.push(x));
+  if(rules.length){
+    L.push('## 六、行为准则');
+    rules.forEach((x, i) => L.push(`${i + 1}. ${x}`));
+    L.push('');
+  }
+
+  if(c.greeting){
+    L.push('## 七、开场');
+    L.push(`对话开始时，用符合角色的方式说出类似这样的话：「${c.greeting}」`);
+    L.push('');
+  }
+
+  if(c.extra){ L.push('## 八、补充指令'); L.push(c.extra); L.push(''); }
+
+  L.push('---');
+  L.push('现在请直接以角色的身份开始对话，、说明或自我介绍。');
+  return L.join('\n');
+}
+
+function buildPrompt(c){
+  if(c.mode === 'advanced'){
+    const raw = (c.advancedProtocol || '').trim();
+    return raw ? c.advancedProtocol : '（还没有写入高级协议原文，请在编辑区粘贴或撰写）';
+  }
+  return buildFromSimple(c);
+}
+
+function renderPreview(){
+  if(!current) return;
+  const text = buildPrompt(current);
+  document.getElementById('promptText').textContent = text;
+  document.getElementById('charCount').textContent = text.length + ' 字';
+}
+
+/* ---------- 简单格式解析器 ---------- */
+const FIELD_ALIASES = {
+  name: ['名字','姓名','名称','角色名','昵称','name'],
+  age: ['年龄','岁数','age'],
+  gender: ['性别','gender'],
+  identity: ['身份/职业','职业身份','身份','职业','工作','occupation'],
+  emoji: ['头像','emoji','图标'],
+  tags: ['性格关键词','性格标签','关键词','标签','tags'],
+  personalityDesc: ['性格细节','性格描述','性格','个性','人设','personality'],
+  background: ['背景故事','背景','经历','故事','设定','世界观','身世','background'],
+  tone: ['说话风格','语言风格','说话方式','语气','语调','tone'],
+  address: ['称呼用户为','称呼用户','如何称呼用户','称呼','address'],
+  catchphrase: ['口头禅','口头语','常用语','catchphrase'],
+  sentenceLen: ['句子长度','篇幅','回复长度'],
+  emojiUse: ['表情使用','表情符号'],
+  relation: ['与用户的关系','用户关系','关系','relationship'],
+  intimacy: ['亲密度','亲密程度'],
+  greeting: ['开场白','第一句话','起始语','开场','greeting'],
+  extra: ['补充指令','额外要求','备注','其他','补充','extra'],
+  rules: ['行为准则','规则','准则','要求','rules']
+};
+
+const SECTION_MAP = [
+  { re: /角色身份|基本信息|身份信息|基础信息/, field: null },
+  { re: /性格|个性|人设/, field: 'personalityDesc' },
+  { re: /背景|经历|故事/, field: 'background' },
+  { re: /说话风格|语言风格|语气|说话方式/, field: null },
+  { re: /关系/, field: null },
+  { re: /行为准则|规则|准则/, field: 'rules' },
+  { re: /开场|第一句|起始/, field: 'greeting' },
+  { re: /补充|额外|其他|备注/, field: 'extra' }
+];
+
+function matchField(key){
+  const k = key.replace(/\s/g, '');
+  if(!k) return null;
+  for(const [field, aliases] of Object.entries(FIELD_ALIASES)){
+    if(aliases.some(a => a === k)) return field;
+  }
+  for(const [field, aliases] of Object.entries(FIELD_ALIASES)){
+    if(aliases.some(a => k.includes(a) || (k.length >= 2 && a.includes(k)))) return field;
+  }
+  return null;
+}
+
+function splitItems(s){
+  return s.split(/[、；;,，]/).map(x => x.trim()).filter(Boolean);
+}
+
+function extractByRegex(text, fields){
+  if(!fields.name){
+    const m = text.match(/(?:你叫|你的名字(?:是|叫)|名字(?:是|叫)|姓名(?:是|叫)|叫做?)\s*([\u4e00-\u9fa5A-Za-z·]{1,8})/);
+    if(m) fields.name = m[1];
+  }
+  if(!fields.age){
+    const m = text.match(/(\d{1,2})\s*岁/);
+    if(m) fields.age = m[1];
+  }
+  if(!fields.gender){
+    if(/性别\s*[:是]?\s*女|她是|女生|女性/.test(text)) fields.gender = '女';
+    else if(/性别\s*[:是]?\s*男|他是|男生|男性/.test(text)) fields.gender = '男';
+  }
+  if(!fields.address){
+    const m = text.match(/(?:称呼用户为|叫他|叫她)\s*[「"'“]?([^」"'”，。\s]{1,6})/);
+    if(m) fields.address = m[1];
+  }
+  if(!fields.catchphrase){
+    const m = text.match(/(?:口头禅(?:是)?|常说)\s*[「"'“]([^」"'”]{1,20})[」"'”]/);
+    if(m) fields.catchphrase = m[1];
+  }
+}
+
+function looksAdvanced(text){
+  if(!text) return false;
+  return /\[[A-Z][A-Z0-9_]+\]/.test(text) || /═{5,}/.test(text) || /^##\s*\[/m.test(text);
+}
+
+function parseProtocol(raw){
+  const out = { fields: {}, rules: [], advanced: false, name: '' };
+  if(!raw || !raw.trim()) return out;
+
+  if(looksAdvanced(raw)){
+    out.advanced = true;
+    out.name = extractNameFromProtocol(raw);
+    return out;
+  }
+
+  let text = raw.replace(/\r\n/g, '\n')
+    .replace(/：/g, ':')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/\*\*/g, '')
+    .replace(/^\s*#+\s*/gm, '');
+
+  const lines = text.split('\n');
+  let section = null;
+  const leftovers = [];
+
+  for(let rawLine of lines){
+    let line = rawLine.trim();
+    if(!line) continue;
+
+    if(!line.includes(':') && line.length <= 14){
+      const hit = SECTION_MAP.find(s => s.re.test(line));
+      if(hit){ section = hit.field || 'kv'; continue; }
+    }
+
+    line = line.replace(/^[-•·*]\s*/, '').replace(/^\d+[.、)]\s*/, '');
+
+    const kv = line.match(/^([\u4e00-\u9fa5A-Za-z\/\s]{1,10})\s*:\s*(.+)$/);
+    if(kv){
+      const k = kv[1].trim(), v = kv[2].trim();
+      const f = matchField(k);
+      if(f){
+        if(f === 'rules') out.rules.push(...splitItems(v));
+        else if(f === 'tags'){ const t = splitItems(v); out.fields.tags = (out.fields.tags || []).concat(t); }
+        else out.fields[f] = out.fields[f] ? out.fields[f] + ' ' + v : v;
+        continue;
+      }
+    }
+
+    if(section === 'rules') out.rules.push(...splitItems(line));
+    else if(section === 'tags'){ const t = splitItems(line); out.fields.tags = (out.fields.tags || []).concat(t); }
+    else if(section && section !== 'kv') out.fields[section] = out.fields[section] ? out.fields[section] + '\n' + line : line;
+    else leftovers.push(line);
+  }
+
+  const rest = leftovers.join('。');
+  if(rest) extractByRegex(rest, out.fields);
+
+  if(out.fields.tags) out.fields.tags = [...new Set(out.fields.tags)].filter(Boolean);
+
+  if(rest){
+    if(!out.fields.background && rest.length > 8) out.fields.background = rest;
+    else if(!out.fields.extra && rest.length > 8) out.fields.extra = rest;
+  }
+  if(out.rules.length) out.rules = [...new Set(out.rules)];
+
+  return out;
+}
+
+/* ---------- 解析预览 ---------- */
+const FIELD_LABEL = {
+  name:'名字', age:'年龄', gender:'性别', identity:'身份', emoji:'头像',
+  tags:'性格标签', personalityDesc:'性格细节', background:'背景',
+  tone:'语气', address:'称呼', catchphrase:'口头禅', sentenceLen:'篇幅',
+  emojiUse:'表情', relation:'关系', intimacy:'亲密度',
+  greeting:'开场白', extra:'补充'
+};
+
+let parseTimer = null;
+function doParse(){
+  const text = document.getElementById('importText').value;
+  const forceRaw = document.getElementById('importRaw').checked;
+  const r = parseProtocol(text);
+  const box = document.getElementById('parsePreview');
+  const badge = document.getElementById('parseBadge');
+  box.innerHTML = '';
+
+  if(!text.trim()){
+    box.innerHTML = '<div class="pf empty">粘贴后会自动识别姓名、年龄、性格、背景、语气、关系、准则等字段。</div>';
+    badge.textContent = '等待输入';
+    return;
+  }
+
+  if(forceRaw || r.advanced){
+    const row = document.createElement('div');
+    row.className = 'pf adv';
+    const nm = r.name || extractNameFromProtocol(text);
+    row.textContent = `检测到高级结构格式，将整段作为「高级协议原文」保留。${nm ? ' 识别到名字：' + nm : ''}`;
+    box.appendChild(row);
+    const row2 = document.createElement('div');
+    row2.className = 'pf';
+    row2.innerHTML = '<span class="k">字符数</span><span class="v">' + text.length + ' 字</span>';
+    box.appendChild(row2);
+    badge.textContent = '高级格式';
+    return;
+  }
+
+  const entries = Object.entries(r.fields).filter(([k,v]) => v && String(v).trim());
+  const count = entries.length + (r.rules.length ? 1 : 0);
+
+  if(!count){
+    box.innerHTML = '<div class="pf empty">没能识别出标准字段。可以尝试写成「名字：xxx」「性格：xxx」这样的分点格式，或勾选下方"作为高级协议原文保留"。</div>';
+    badge.textContent = '未识别';
+    return;
+  }
+
+  entries.forEach(([k, v]) => {
+    const row = document.createElement('div'); row.className = 'pf';
+    const kEl = document.createElement('span'); kEl.className = 'k'; kEl.textContent = FIELD_LABEL[k] || k;
+    const vEl = document.createElement('span'); vEl.className = 'v';
+    vEl.textContent = Array.isArray(v) ? v.join('、') : String(v);
+    row.append(kEl, vEl); box.appendChild(row);
+  });
+
+  if(r.rules.length){
+    const row = document.createElement('div'); row.className = 'pf';
+    const kEl = document.createElement('span'); kEl.className = 'k'; kEl.textContent = '行为准则';
+    const vEl = document.createElement('span'); vEl.className = 'v';
+    vEl.style.whiteSpace = 'pre-wrap';
+    vEl.textContent = r.rules.map((x,i) => `${i+1}. ${x}`).join('\n');
+    row.append(kEl, vEl); box.appendChild(row);
+  }
+
+  badge.textContent = `识别到 ${count} 项`;
+}
+
+/* ---------- 弹窗 ---------- */
+function openImport(){
+  document.getElementById('importModal').classList.add('on');
+  setTimeout(() => document.getElementById('importText').focus(), 60);
+  doParse();
+}
+function closeImport(){ document.getElementById('importModal').classList.remove('on'); }
+
+document.getElementById('importText').addEventListener('input', () => {
+  clearTimeout(parseTimer);
+  parseTimer = setTimeout(doParse, 220);
+});
+document.getElementById('importRaw').addEventListener('change', doParse);
+
+document.getElementById('txtInput').addEventListener('change', e => {
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = () => { document.getElementById('importText').value = rd.result; doParse(); };
+  rd.readAsText(f);
+  e.target.value = '';
+});
+function loadTextFile(){ document.getElementById('txtInput').click(); }
+
+function applyImport(){
+  const text = document.getElementById('importText').value.trim();
+  if(!text) return toast('请先粘贴协议内容');
+  const forceRaw = document.getElementById('importRaw').checked;
+  const r = parseProtocol(text);
+  const asNew = document.getElementById('importNew').checked;
+
+  let target;
+  if(asNew){ target = makeBlank(); cards.push(target); }
+  else target = current;
+
+  if(forceRaw || r.advanced){
+    target.mode = 'advanced';
+    target.advancedProtocol = text;
+    const n = extractNameFromProtocol(text);
+    if(n) target.name = n;
+    target.sourceText = text;
+    current = target;
+    renderList(); fillForm(target); renderMode(); renderPreview(); save();
+    closeImport();
+    toast(asNew ? '已创建新角色并保留原文' : '已填入当前角色（原文模式）');
+    return;
+  }
+
+  const f = r.fields;
+  if(f.name) target.name = f.name;
+  if(f.age) target.age = f.age;
+  if(f.gender) target.gender = f.gender;
+  if(f.identity) target.identity = f.identity;
+  if(f.emoji && f.emoji.length <= 4) target.emoji = f.emoji;
+  if(f.tags && f.tags.length) target.tags = f.tags;
+  if(f.personalityDesc) target.personalityDesc = f.personalityDesc;
+  if(f.background) target.background = f.background;
+
+  if(f.tone){
+    const hit = TONES.find(t => f.tone.includes(t) || t.includes(f.tone));
+    if(hit) target.tone = hit;
+    else target.extra = (target.extra ? target.extra + '\n' : '') + '语气：' + f.tone;
+  }
+  if(f.address) target.address = f.address;
+  if(f.catchphrase) target.catchphrase = f.catchphrase;
+  if(f.sentenceLen){
+    const hit = SENT_LEN.find(s => f.sentenceLen.includes(s) || s.includes(f.sentenceLen));
+    if(hit) target.sentenceLen = hit;
+  }
+  if(f.emojiUse){
+    const hit = EMOJI_USE.find(s => f.emojiUse.includes(s));
+    if(hit) target.emojiUse = hit;
+  }
+  if(f.relation){
+    const hit = RELATIONS.find(s => f.relation.includes(s) || s.includes(f.relation));
+    if(hit) target.relation = hit;
+  }
+  if(f.intimacy){
+    const n = parseInt(f.intimacy, 10);
+    if(!isNaN(n)) target.intimacy = Math.max(0, Math.min(100, n));
+  }
+  if(f.greeting){
+    const m = f.greeting.match(/[「"']([^」"']+)[」"']/);
+    target.greeting = (m ? m[1] : f.greeting).replace(/^对话开始时[，,]?\s*/, '');
+  }
+  if(f.extra) target.extra = (target.extra ? target.extra + '\n' : '') + f.extra;
+
+  if(r.rules.length){
+    const known = r.rules.filter(x => RULE_POOL.includes(x));
+    const custom = r.rules.filter(x => !RULE_POOL.includes(x));
+    if(known.length) target.rules = known;
+    if(custom.length) target.customRules = custom.join('\n');
+  }
+
+  target.mode = 'simple';
+  target.sourceText = text;
+
+  current = target;
+  renderList(); fillForm(target); renderMode(); renderPreview(); save();
+  closeImport();
+  toast(asNew ? '已创建新角色并填入' : '已解析并填入当前角色');
+}
+
+/* ---------- 通用操作 ---------- */
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(cards)); }catch(e){} }
+
+function newCard(){
+  const c = makeBlank();
+  cards.push(c);
+  current = c;
+  renderList(); fillForm(c); renderMode(); renderPreview(); save();
+  setTimeout(() => {
+    const el = document.getElementById('f-name');
+    if(el){ el.focus(); el.scrollIntoView({block: 'center', behavior: 'smooth'}); }
+  }, 50);
+  toast('已新建空白角色');
+}
+
+async function copyPrompt(){
+  const text = document.getElementById('promptText').textContent;
+  if(!text) return;
+  try{ await navigator.clipboard.writeText(text); toast('已复制到剪贴板'); }
+  catch(e){
+    const ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    toast('已复制到剪贴板');
+  }
+}
+
+function exportJSON(){
+  const blob = new Blob([JSON.stringify(cards, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = '角色协议备份.json'; a.click(); URL.revokeObjectURL(a.href);
+}
+function triggerImport(){ document.getElementById('fileInput').click(); }
+
+document.getElementById('fileInput').addEventListener('change', e => {
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try{
+      const data = JSON.parse(rd.result);
+      if(!Array.isArray(data) || !data.length) throw new Error('格式不对');
+      if(!confirm('导入会替换当前所有角色，确定吗？')) return;
+      cards = data.map(normalize);
+      current = cards[0];
+      renderList(); fillForm(current); renderMode(); renderPreview(); save();
+      toast('导入成功');
+    }catch(err){ alert('导入失败：' + err.message); }
+  };
+  rd.readAsText(f); e.target.value = '';
+});
+
+function toast(msg){
+  const t = document.createElement('div'); t.textContent = msg;
+  Object.assign(t.style, {
+    position:'fixed', bottom:'24px', left:'50%', transform:'translateX(-50%)',
+    background:'#8b7cf6', color:'#fff', padding:'9px 20px', borderRadius:'999px',
+    fontSize:'13px', zIndex:999, boxShadow:'0 6px 24px rgba(139,124,246,.4)',
+    transition:'opacity .3s', fontFamily:'inherit'
+  });
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 1700);
+}
+
+document.getElementById('editor').addEventListener('input', (e) => {
+  if(!current) return;
+  if(e.target.id === 'advancedEditor'){
+    current.advancedProtocol = e.target.value;
+    const n = extractNameFromProtocol(e.target.value);
+    if(n) current.name = n;
+  } else if(!current.mode || current.mode === 'simple'){
+    readForm();
+  }
+  renderPreview(); save(); renderList();
+});
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && document.getElementById('importModal').classList.contains('on')) closeImport();
+});
+
+init();
+</script>
+</body>
+</html>
