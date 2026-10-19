@@ -16,6 +16,7 @@ button{font-family:inherit;font-size:13px;padding:7px 13px;border-radius:8px;cur
 button:hover{border-color:#3a4354;background:#232936}
 button.primary{background:linear-gradient(135deg,#8b7cf6,#6d5cf0);border-color:transparent;color:#fff;font-weight:600}
 button.primary:hover{filter:brightness(1.1)}
+button.wechat{background:linear-gradient(135deg,#07c160,#05a04e);border-color:transparent;color:#fff;font-weight:600}
 button:disabled{opacity:.5;cursor:not-allowed}
 
 main{display:grid;grid-template-columns:200px minmax(0,1fr) 380px;gap:14px;padding:14px;max-width:1680px;margin:0 auto;height:calc(100vh - 56px)}
@@ -138,8 +139,9 @@ input[type=range]{width:100%;accent-color:var(--accent);background:transparent;b
   <div class="actions">
     <button onclick="newCard()">＋ 新建</button>
     <button onclick="openImport()">📋 粘贴协议</button>
-    <button onclick="exportJSON()">导出</button>
+    <button onclick="exportJSON()">导出 JSON</button>
     <button onclick="triggerImport()">导入</button>
+    <button class="wechat" onclick="exportWechatPersona()">📥 导出人设(给微信)</button>
     <button class="primary" onclick="copyPrompt()">复制协议</button>
   </div>
 </header>
@@ -264,7 +266,7 @@ input[type=range]{width:100%;accent-color:var(--accent);background:transparent;b
       <span class="n" id="charCount">0 字</span>
     </div>
     <div id="promptBox"><pre id="promptText"></pre></div>
-    <div class="tip"><b>怎么用：</b>配置好后点上方「在线对话」直接测试，或点「复制协议」去 DeepSeek 里开新对话。</div>
+    <div class="tip"><b>怎么用：</b>配置好后点上方「在线对话」直接测试，或点「📥 导出人设(给微信)」下载配置，放到 Mac 的 RPA 文件夹里。</div>
   </section>
 </main>
 
@@ -305,9 +307,9 @@ input[type=range]{width:100%;accent-color:var(--accent);background:transparent;b
 <input type="file" id="txtInput" accept=".txt,.md,.text" style="display:none">
 
 <script>
-// 🔥 抛弃 Cloudflare，直接使用国内直连的智谱官方 API
+// 网页直连智谱，不需要 Worker
 const API_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
-const API_KEY = '64a5bf427f6a4b95bfd5832a81568583.EwINgM1qRAgypC6B'; // 已填入你的 Key
+const API_KEY = '64a5bf427f6a4b95bfd5832a81568583.EwINgM1qRAgypC6B'; 
 const MODEL_NAME = 'glm-4-flash'; 
 
 const KEY = 'rolecard_v3';
@@ -613,7 +615,6 @@ function buildFromSimple(c){
   return L.join('\n');
 }
 
-// 🔥 核心修复：只要有高级协议，就绝对优先用高级协议
 function buildPrompt(c){
   const raw = (c.advancedProtocol || '').trim();
   if(raw){
@@ -627,6 +628,27 @@ function renderPreview(){
   const text = buildPrompt(current);
   document.getElementById('promptText').textContent = text;
   document.getElementById('charCount').textContent = text.length + ' 字';
+}
+
+/* ---------- 🚀 核心功能：导出微信人设文件 ---------- */
+function exportWechatPersona() {
+  if (!current) return alert('请先选择一个角色！');
+  const text = buildPrompt(current);
+  if (!text || text.startsWith('（还没有填写')) {
+    return alert('当前角色内容为空，无法导出。');
+  }
+  
+  // 1. 导出 persona.md 文件
+  const blob = new Blob([text], {type: 'text/markdown'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  // 默认命名 persona.md，方便直接覆盖
+  a.download = 'persona.md'; 
+  a.click();
+  URL.revokeObjectURL(a.href);
+
+  // 2. 给出极度清晰的操作提示
+  alert(`✅ 导出成功！\n\n接下来只需两步，微信里的 AI 就会变成「${getDisplayName(current)}」：\n\n1. 把这个下载好的 persona.md 文件，覆盖到 Mac 上 wechat-mac-rpa 文件夹的 data 目录里。\n2. 终端里按 Ctrl+C 停掉机器人，重新运行 python3 run_bot.py（或者等它自己刷新）。\n\n搞定！用手机去微信里找它聊吧！`);
 }
 
 /* ---------- 聊天逻辑 ---------- */
@@ -682,11 +704,9 @@ ${buildPrompt(current)}
   document.getElementById('sendBtn').disabled = true;
 
   try {
-    // 增加 30 秒超时控制
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-    // 🔥 直接请求国内智谱服务器，不用翻墙
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 
@@ -718,7 +738,7 @@ ${buildPrompt(current)}
   } catch (err) {
     let errMsg = '';
     if (err.name === 'AbortError') {
-      errMsg = '请求超时：网络不稳定，或协议太长。';
+      errMsg = '请求超时：网络不稳定，请重试。';
     } else {
       errMsg = '请求失败：' + err.message;
     }
