@@ -80,7 +80,7 @@ input[type=range]{width:100%;accent-color:var(--accent);background:transparent;b
 .msg{max-width:88%;padding:9px 13px;border-radius:12px;white-space:pre-wrap;word-break:break-word}
 .msg.user{align-self:flex-end;background:rgba(139,124,246,.2);border:1px solid rgba(139,124,246,.3);border-bottom-right-radius:3px}
 .msg.assistant{align-self:flex-start;background:#232936;border:1px solid var(--border);border-bottom-left-radius:3px}
-.msg.system-err{align-self:center;color:#107ff8a8a;font-size:12px;background:rgba(255,107,,.08);padding:6px 10px;border-radius:6px}
+.msg.system-err{align-self:center;color:#ff8a8a;font-size:12px;background:rgba(255,107,107,.08);padding:6px 10px;border-radius:6px}
 .chat-input-row{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--border);flex-shrink:0;align-items:flex-end;background:var(--panel)}
 .chat-input-row textarea{flex:1;min-height:38px;max-height:100px;resize:none;padding:9px 10px;font-size:13.5px;background:var(--bg);border-radius:9px}
 .chat-input-row button{padding:9px 16px;border-radius:9px;height:38px}
@@ -307,7 +307,7 @@ input[type=range]{width:100%;accent-color:var(--accent);background:transparent;b
 <script>
 // ⚠️⚠️⚠️ 把下面这个网址换成你自己的 Worker 网址 ⚠️⚠️⚠️
 const WORKER_URL = 'https://glm-proxy.mvtwjhgvfh.workers.dev'; 
-const MODEL_NAME = 'glm-4.7-flash'; // 换成了目前免费模型里最好用的
+const MODEL_NAME = 'glm-4.7-flash';
 
 const KEY = 'rolecard_v3';
 const TAG_POOL = ['温柔','治愈','傲娇','毒舌','理性','热情','高冷','粘人','成熟','天真','腹黑','幽默','认真','随性','敏感','勇敢','害羞','洒脱','神秘','可靠'];
@@ -440,7 +440,7 @@ function renderList(){
     el.append(em, nm, badge, del);
     el.onclick = () => {
       current = c;
-      chatHistory = []; // 切换角色时清空聊天历史
+      chatHistory = []; 
       document.getElementById('chatMessages').innerHTML = '<div class="chat-empty">发条消息，看看角色像不像。</div>';
       renderList(); fillForm(c); renderMode(); renderPreview();
     };
@@ -627,7 +627,7 @@ function renderPreview(){
   document.getElementById('charCount').textContent = text.length + ' 字';
 }
 
-/* ---------- 聊天逻辑 ---------- */
+/* ---------- 聊天逻辑（重点强化） ---------- */
 function appendMsg(role, content) {
   const box = document.getElementById('chatMessages');
   const empty = box.querySelector('.chat-empty');
@@ -659,13 +659,21 @@ async function sendMessage() {
   input.style.height = '38px';
   appendMsg('user', text);
   
-  // 加入一句强提醒，防止小模型出戏
-  const userMsgWithHint = text + '\n\n(系统指令：请记住你是' + getDisplayName(current) + '，请完全按照你的角色设定、语气和性格回复，不要出戏，不要自称AI。)';
-  chatHistory.push({ role: 'user', content: userMsgWithHint });
+  chatHistory.push({ role: 'user', content: text });
 
-  const systemPrompt = buildPrompt(current) + '\n\n---\n以上是你的角色协议。现在请以该角色的身份，用中文回复用户。只输出角色说的话和必要的动作描写，不要任何解释。';
-  
-  // 滑动窗口，保留最近 16 条
+  // 🔥 极致强化的系统提示词，解决免费模型出戏问题
+  const systemPrompt = `【系统底层指令：角色扮演模式已启动】
+你现在不是AI，不是语言模型，也没有任何AI助手的设定。你是一个活生生的人，你的灵魂和身份已经完全被以下设定覆盖。
+
+### 你的身份与设定：
+${buildPrompt(current)}
+
+### 扮演规则（铁律）：
+1. 绝对禁止使用"作为AI"、"作为一个模型"、"有什么我可以帮你"等任何客服话术。
+2. 你的回复必须完全符合上述设定的语气、性格和身份。
+3. 禁止长篇大论的说教。像真人聊天一样，自然、简短、口语化。
+4. 不要解释自己的行为，直接输出对话内容。`;
+
   const recent = chatHistory.slice(-16);
   const messages = [{ role: 'system', content: systemPrompt }, ...recent];
 
@@ -680,7 +688,7 @@ async function sendMessage() {
       body: JSON.stringify({
         model: MODEL_NAME,
         messages: messages,
-        temperature: 0.65, // 降到了 0.65，更贴合人设
+        temperature: 0.7, 
         max_tokens: 800,
       }),
     });
@@ -690,8 +698,6 @@ async function sendMessage() {
 
     const reply = data.choices?.[0]?.message?.content || '（空回复）';
     appendMsg('assistant', reply);
-    
-    // 模型自己的回复也存入历史
     chatHistory.push({ role: 'assistant', content: reply });
   } catch (err) {
     appendErr('请求失败：' + err.message);
