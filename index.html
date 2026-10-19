@@ -305,7 +305,6 @@ input[type=range]{width:100%;accent-color:var(--accent);background:transparent;b
 <input type="file" id="txtInput" accept=".txt,.md,.text" style="display:none">
 
 <script>
-// 已经帮你填好了 URL 和模型名，不需要再改了
 const WORKER_URL = 'https://glm-proxy.mvtwjhgvfh.workers.dev'; 
 const MODEL_NAME = 'glm-4-flash'; 
 
@@ -653,7 +652,7 @@ async function sendMessage() {
   const input = document.getElementById('chatInput');
   const text = input.value.trim();
   if (!text) return;
-  if (!current) return appendErr('请先创建或选择一个角色。');
+  if (!current) return alert('请先创建或选择一个角色。');
 
   input.value = '';
   input.style.height = '38px';
@@ -712,11 +711,15 @@ ${buildPrompt(current)}
     appendMsg('assistant', reply);
     chatHistory.push({ role: 'assistant', content: reply });
   } catch (err) {
+    let errMsg = '';
     if (err.name === 'AbortError') {
-      appendErr('请求超时：高级协议太长导致模型卡住，或者网络不稳定。建议精简协议字数。');
+      errMsg = '请求超时：高级协议太长导致模型卡住，或者网络不稳定。建议精简协议字数。';
     } else {
-      appendErr('请求失败：' + err.message);
+      errMsg = '请求失败：' + err.message;
     }
+    appendErr(errMsg);
+    // 🔥 强制弹窗提示，防止静默失败
+    alert(errMsg);
   } finally {
     hint.textContent = '';
     document.getElementById('sendBtn').disabled = false;
